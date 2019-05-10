@@ -9,9 +9,12 @@ import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.CameraNode;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.CameraControl.ControlDirection;
 import com.jme3.scene.shape.Box;
+import java.util.ArrayList;
+import java.util.Random;
 
 /**
  * This is the Main Class of your Game. You should only do initialization here.
@@ -20,11 +23,14 @@ import com.jme3.scene.shape.Box;
  * @author normenhansen
  */
 public class Main extends SimpleApplication {
-
-    private Spatial tank;
+    
     private CameraNode camNode;
     private Vector3f posinit;
-
+    private Spatial tank;
+    private int cont = 1;
+    private long delayEnemy;
+    private ArrayList<Enemy> enemyList = new ArrayList();
+    
     public static void main(String[] args) {
         Main app = new Main();
         app.setShowSettings(false);
@@ -44,6 +50,7 @@ public class Main extends SimpleApplication {
         sun.setColor(ColorRGBA.White);
         rootNode.addLight(sun);
 
+        
         tank = createTank("MyTank");
         rootNode.attachChild(tank);
         
@@ -51,27 +58,45 @@ public class Main extends SimpleApplication {
         //camNode.setControlDir(ControlDirection.SpatialToCamera);
         rootNode.attachChild(camNode);  
         
+        Vector3f pos = tank.getLocalTranslation().clone();
+        
+        posinit = tank.getLocalTranslation().clone();
+        posinit.y +=40;
+        
+        
+        pos.z -= 3;
+        pos.y += 50;
+       
+        
+        camNode.setLocalTranslation(pos);
+        camNode.lookAt(posinit, Vector3f.UNIT_Z);
         
         
     }
 
     @Override
     public void simpleUpdate(float tpf) {
+        
         //TODO: add update code
-        tank.move(0,0,tpf);
-        Vector3f pos = tank.getLocalTranslation().clone();
+        //tank.move(0,0,tpf);
         
-        posinit = tank.getLocalTranslation().clone();
-        posinit.y +=10;
-        //posinit. +=5;
-        
-        pos.z -= 5;
-        pos.y += 25;
-       
-        
-        camNode.setLocalTranslation(pos);
-        camNode.lookAt(posinit, Vector3f.UNIT_Z);
         //camNode.lookAt(posinit, Vector3f.UNIT_Z);
+        
+        long time = System.currentTimeMillis();
+        
+         
+        if(time > delayEnemy+3000)
+        {
+            Enemy enemy = createEnemy(time);
+            enemyList.add(enemy);
+            rootNode.attachChild(enemy.getSpatial());
+            if(Enemy e : enemyList.ge)
+            {
+                e.get
+                
+            }
+            
+        }
     }
 
     @Override
@@ -85,7 +110,29 @@ public class Main extends SimpleApplication {
          */
         Spatial tank = assetManager.loadModel("Models/Tank/tank.j3o");
         tank.scale(0.35f);
+        tank.setName(name);
 
         return tank;
+    }
+    
+    public Enemy createEnemy(long timeEnemy)
+    {
+        delayEnemy = timeEnemy;
+        
+        Random rand = new Random();
+        
+        Enemy enemy = new Enemy();
+        Spatial s = assetManager.loadModel("Models/Tank/tank.j3o");
+        s.scale(0.35f);
+        
+        s.setLocalTranslation(((rand.nextFloat() * 70) - 40), -3, 30);
+        s.rotate(0, FastMath.PI, 0);
+        s.setName(Integer.toString(cont));
+        cont++;
+        
+        enemy.setSpatial(s);
+        enemy.setName(s.getName());
+        
+        return enemy;
     }
 }
