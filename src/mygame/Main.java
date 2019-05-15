@@ -1,10 +1,13 @@
 package mygame;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.collision.CollisionResult;
+import com.jme3.collision.CollisionResults;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
+import com.jme3.math.Triangle;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.CameraNode;
@@ -15,6 +18,7 @@ import com.jme3.scene.control.CameraControl.ControlDirection;
 import com.jme3.scene.shape.Box;
 import java.util.ArrayList;
 import java.util.Random;
+
 
 /**
  * This is the Main Class of your Game. You should only do initialization here.
@@ -29,7 +33,10 @@ public class Main extends SimpleApplication {
     private Spatial tank;
     private int cont = 1;
     private long delayEnemy;
-    private ArrayList<Enemy> enemyList = new ArrayList();
+    private ArrayList<Enemy> enemyList = new ArrayList<Enemy>();
+    Random rand = new Random();
+    
+    
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -84,19 +91,55 @@ public class Main extends SimpleApplication {
         
         long time = System.currentTimeMillis();
         
-         
+    
         if(time > delayEnemy+3000)
         {
+            boolean hasCollision = true;
+            
             Enemy enemy = createEnemy(time);
+            do
+            {
+                hasCollision = hasCollision(enemy);
+                if(hasCollision)
+                    enemy.getSpatial().setLocalTranslation(((rand.nextFloat() * 70) - 40), -3, 30);
+                
+            }while(hasCollision);
+
+            
+            /*
+            CollisionResults results = new CollisionResults();
+            if(!enemyList.isEmpty())
+            {
+                enemyList.add(enemy);
+                for(Enemy e : enemyList)
+                {
+                    enemy.getSpatial().collideWith(e.getSpatial(), results);
+                     for (int i = 0; i < results.size(); i++) {
+                    // For each hit, we know distance, impact point, name of geometry.
+                    float     dist = results.getCollision(i).getDistance();
+                    Vector3f    pt = results.getCollision(i).getContactPoint();
+                    String   party = results.getCollision(i).getGeometry().getName();
+                    int        tri = results.getCollision(i).getTriangleIndex();
+                    Vector3f  norm = results.getCollision(i).getTriangle(new Triangle()).getNormal();
+                    System.out.println("Details of Collision #" + i + ":");
+                    System.out.println("  Party " + party + " was hit at " + pt + ", " + dist + " wu away.");
+                    System.out.println("  The hit triangle #" + tri + " has a normal vector of " + norm);
+                    }
+                  
+                }
+            }  
+            else
+                enemyList.add(enemy);
+            */
             enemyList.add(enemy);
             rootNode.attachChild(enemy.getSpatial());
-            if(Enemy e : enemyList.ge)
-            {
-                e.get
-                
-            }
-            
+           
         }
+      
+                        
+                        
+            
+        
     }
 
     @Override
@@ -119,7 +162,6 @@ public class Main extends SimpleApplication {
     {
         delayEnemy = timeEnemy;
         
-        Random rand = new Random();
         
         Enemy enemy = new Enemy();
         Spatial s = assetManager.loadModel("Models/Tank/tank.j3o");
@@ -133,6 +175,21 @@ public class Main extends SimpleApplication {
         enemy.setSpatial(s);
         enemy.setName(s.getName());
         
+        
+        
         return enemy;
+    }
+    
+    public boolean hasCollision(Enemy enemy)
+    {
+        CollisionResults results = new CollisionResults();
+        for(Enemy e: enemyList)
+        {
+            enemy.getSpatial().collideWith(e.getSpatial().getWorldBound(), results);
+            
+            if (results.size() > 0)
+                return true;
+        }
+        return false;
     }
 }
