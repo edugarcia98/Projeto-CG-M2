@@ -35,6 +35,7 @@ import java.util.Random;
 public class Main extends SimpleApplication implements AnimEventListener {
 
     private CameraNode camNode;
+    private Node bulletNode;
     private Vector3f posinit;
     private Spatial tank;
     private int cont = 1;
@@ -52,10 +53,13 @@ public class Main extends SimpleApplication implements AnimEventListener {
     public void simpleInitApp() {
 
         flyCam.setMoveSpeed(75);
-
+        bulletNode = new Node("BulletNode");
+        
         /**
          * A white, directional light source
          */
+        
+        
         DirectionalLight sun = new DirectionalLight();
         sun.setDirection((new Vector3f(-0.5f, -0.5f, -0.5f)).normalizeLocal());
         sun.setColor(ColorRGBA.White);
@@ -64,7 +68,10 @@ public class Main extends SimpleApplication implements AnimEventListener {
         initKeys();
 
         tank = createTank("MyTank");
+        tank.setLocalTranslation(0, -3, 0);
         rootNode.attachChild(tank);
+        
+      
 
         camNode = new CameraNode("CamNode", cam);
         //camNode.setControlDir(ControlDirection.SpatialToCamera);
@@ -90,6 +97,23 @@ public class Main extends SimpleApplication implements AnimEventListener {
         //tank.move(0,0,tpf);
         //camNode.lookAt(posinit, Vector3f.UNIT_Z);
         long time = System.currentTimeMillis();
+        for(Spatial a: bulletNode.getChildren())
+        {
+            boolean hasCollisionBullet = true;
+            a.move(0,0,tpf*30);
+             do {
+                hasCollisionBullet = hasCollisionBullet(a);
+                if (hasCollisionBullet) {
+                    
+                    
+                    bulletNode.detachChild(a);
+                    rootNode.detachChild(a);
+                    
+                    
+                }
+
+            } while (hasCollisionBullet);   
+        }
 
         if (time > delayEnemy + 3000) {
             boolean hasCollision = true;
@@ -103,32 +127,8 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
             } while (hasCollision);
 
-            /*
-            CollisionResults results = new CollisionResults();
-            if(!enemyList.isEmpty())
-            {
-                enemyList.add(enemy);
-                for(Enemy e : enemyList)
-                {
-                    enemy.getSpatial().collideWith(e.getSpatial(), results);
-                     for (int i = 0; i < results.size(); i++) {
-                    // For each hit, we know distance, impact point, name of geometry.
-                    float     dist = results.getCollision(i).getDistance();
-                    Vector3f    pt = results.getCollision(i).getContactPoint();
-                    String   party = results.getCollision(i).getGeometry().getName();
-                    int        tri = results.getCollision(i).getTriangleIndex();
-                    Vector3f  norm = results.getCollision(i).getTriangle(new Triangle()).getNormal();
-                    System.out.println("Details of Collision #" + i + ":");
-                    System.out.println("  Party " + party + " was hit at " + pt + ", " + dist + " wu away.");
-                    System.out.println("  The hit triangle #" + tri + " has a normal vector of " + norm);
-                    }
-                  
-                }
-            }  
-            else
-                enemyList.add(enemy);
-             */
             enemyList.add(enemy);
+            enemy.getControl().getAnimationNames();
             rootNode.attachChild(enemy.getSpatial());
 
         }
@@ -180,6 +180,33 @@ public class Main extends SimpleApplication implements AnimEventListener {
         }
         return false;
     }
+    public boolean hasCollisionBullet(Spatial geo) {
+        CollisionResults results = new CollisionResults();
+        
+        for (Enemy e : enemyList) {
+            geo.collideWith(e.getSpatial().getWorldBound(), results);
+            
+            if (results.size() > 0) {
+                System.out.println("Acertou!!!!");
+                rootNode.detachChild(e.getSpatial());
+                enemyList.remove(e);
+                return true;                        
+            }
+        }
+        return false;
+    }
+    
+    
+    public Geometry createBullet(){
+        Box b = new Box(0.1f, 0.1f, 0.8f);
+        Geometry geom = new Geometry("Box", b);
+        geom.setLocalTranslation(tank.getLocalTranslation());
+        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", ColorRGBA.Blue);
+        geom.setMaterial(mat);
+        
+        return geom;  
+    }
 
     @Override
     public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
@@ -212,6 +239,9 @@ public class Main extends SimpleApplication implements AnimEventListener {
         public void onAction(String name, boolean keyPressed, float tpf) {
             if (name.equals("Shoot") && !keyPressed) {
                 System.out.println("Atirou");
+                bulletNode.attachChild(createBullet());
+                rootNode.attachChild(bulletNode);
+                    
             }
             
             
