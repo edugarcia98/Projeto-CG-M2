@@ -19,6 +19,7 @@ public class Enemy {
     private AnimChannel channel;
     private AnimControl control;
     private String name;
+    private long delayEnemyBullet;
 
     public Spatial getSpatial() {
         return spatial;
@@ -51,6 +52,12 @@ public class Enemy {
     public void setName(String name) {
         this.name = name;
     }
-    
-    
+
+    public long getDelayEnemyBullet() {
+        return delayEnemyBullet;
+    }
+
+    public void setDelayEnemyBullet(long delayEnemyBullet) {
+        this.delayEnemyBullet = delayEnemyBullet;
+    }
 }

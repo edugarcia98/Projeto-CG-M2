@@ -36,11 +36,18 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
     private CameraNode camNode;
     private Node bulletNode;
+    private Node enemyBulletNode;
     private Vector3f posinit;
     private Spatial tank;
     private int cont = 1;
     private long delayEnemy;
+    private AnimChannel channel;
+    private AnimControl control;
     private ArrayList<Enemy> enemyList = new ArrayList<Enemy>();
+    private ArrayList<EnemyBullet> enemyBulletList = new ArrayList<EnemyBullet>();
+    private ArrayList<EnemyBullet> enemyBulletListOut = new ArrayList<EnemyBullet>();
+    private Vector3f upVector = new Vector3f(0, 1, 0);
+    private Vector3f anterior = new Vector3f();
     Random rand = new Random();
 
     public static void main(String[] args) {
@@ -54,6 +61,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
         flyCam.setMoveSpeed(75);
         bulletNode = new Node("BulletNode");
+        enemyBulletNode = new Node("EnemyBulletNode");
         
         /**
          * A white, directional light source
@@ -101,19 +109,41 @@ public class Main extends SimpleApplication implements AnimEventListener {
         {
             boolean hasCollisionBullet = true;
             a.move(0,0,tpf*30);
-             do {
-                hasCollisionBullet = hasCollisionBullet(a);
-                if (hasCollisionBullet) {
-                    
-                    
-                    bulletNode.detachChild(a);
-                    rootNode.detachChild(a);
-                    
-                    
-                }
-
-            } while (hasCollisionBullet);   
+            
+            if(hasCollisionBullet(a))
+            {
+                bulletNode.detachChild(a);
+                rootNode.detachChild(a);
+            }
+             
+            if(a.getLocalTranslation().getZ() >= 41.5)
+            {
+                bulletNode.detachChild(a);
+                rootNode.detachChild(a);
+            }
         }
+        
+        for(EnemyBullet eb: enemyBulletList)
+        {
+            eb.getGeom().move(eb.getEnemy().getSpatial().getLocalRotation().getW()*75*tpf, 0, -tpf*30);
+            
+            if(eb.getGeom().getLocalTranslation().getZ() <= -14.5f)
+            {
+                enemyBulletNode.detachChild(eb.getGeom());
+                rootNode.detachChild(eb.getGeom());
+                enemyBulletListOut.add(eb);
+            } 
+            
+            if(hasCollisionEnemyBullet(eb))
+            {
+                System.out.println("ME ACERTARAM");
+                enemyBulletNode.detachChild(eb.getGeom());
+                rootNode.detachChild(eb.getGeom());
+                enemyBulletListOut.add(eb);
+            }
+        }
+        
+        eliminateEnemyBullets();
 
         if (time > delayEnemy + 3000) {
             boolean hasCollision = true;
@@ -126,13 +156,24 @@ public class Main extends SimpleApplication implements AnimEventListener {
                 }
 
             } while (hasCollision);
-
+            
             enemyList.add(enemy);
-            enemy.getControl().getAnimationNames();
             rootNode.attachChild(enemy.getSpatial());
-
         }
-
+        
+        for(Enemy e: enemyList)
+        {
+            e.getSpatial().lookAt(tank.getLocalTranslation(), upVector);
+            if(time > e.getDelayEnemyBullet() + 1500)
+            {
+                EnemyBullet eb = createEnemyBullet(e, time);
+                enemyBulletList.add(eb);
+                enemyBulletNode.attachChild(eb.getGeom());
+                rootNode.attachChild(enemyBulletNode);
+            }
+        }
+        
+        anterior = tank.getLocalTranslation();
     }
 
     @Override
@@ -180,6 +221,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
         }
         return false;
     }
+    
     public boolean hasCollisionBullet(Spatial geo) {
         CollisionResults results = new CollisionResults();
         
@@ -196,6 +238,18 @@ public class Main extends SimpleApplication implements AnimEventListener {
         return false;
     }
     
+    public boolean hasCollisionEnemyBullet(EnemyBullet eb) {
+        CollisionResults results = new CollisionResults();
+        
+        eb.getGeom().collideWith(tank.getWorldBound(), results);
+            
+        if (results.size() > 0) {
+            System.out.println("Acertou!!!!");
+            return true;                        
+        }
+        
+        return false;
+    }
     
     public Geometry createBullet(){
         Box b = new Box(0.1f, 0.1f, 0.8f);
@@ -206,6 +260,37 @@ public class Main extends SimpleApplication implements AnimEventListener {
         geom.setMaterial(mat);
         
         return geom;  
+    }
+    
+    public EnemyBullet createEnemyBullet(Enemy e, long timeEnemyBullet)
+    {
+        e.setDelayEnemyBullet(timeEnemyBullet);
+        
+        EnemyBullet enemyBullet = new EnemyBullet();
+        
+        Box b = new Box(0.1f, 0.1f, 0.8f);
+        Geometry geom = new Geometry("Box", b);
+        geom.setLocalTranslation(e.getSpatial().getLocalTranslation());
+        geom.setLocalRotation(e.getSpatial().getLocalRotation());
+        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", ColorRGBA.Red);
+        geom.setMaterial(mat);
+        
+        enemyBullet.setName("EnemyBullet");
+        enemyBullet.setGeom(geom);
+        enemyBullet.setEnemy(e);
+        
+        return enemyBullet;  
+    }
+    
+    public void eliminateEnemyBullets()
+    {
+        for(EnemyBullet eb: enemyBulletListOut)
+        {
+            enemyBulletList.remove(eb);
+        }
+        
+        enemyBulletListOut.clear();
     }
 
     @Override
@@ -238,7 +323,6 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
         public void onAction(String name, boolean keyPressed, float tpf) {
             if (name.equals("Shoot") && !keyPressed) {
-                System.out.println("Atirou");
                 bulletNode.attachChild(createBullet());
                 rootNode.attachChild(bulletNode);
                     
