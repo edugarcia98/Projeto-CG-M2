@@ -7,9 +7,11 @@ import com.jme3.app.SimpleApplication;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
 import com.jme3.input.KeyInput;
+import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.KeyTrigger;
+import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
@@ -23,6 +25,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.CameraControl.ControlDirection;
 import com.jme3.scene.shape.Box;
+import com.jme3.scene.shape.Sphere;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -41,13 +44,20 @@ public class Main extends SimpleApplication implements AnimEventListener {
     private Spatial tank;
     private int cont = 1;
     private long delayEnemy;
+    private long delayMediumSpecial;
+    private long delayStrongSpecial;
+    private ColorRGBA bulletColor;
     private AnimChannel channel;
     private AnimControl control;
     private ArrayList<Enemy> enemyList = new ArrayList<Enemy>();
     private ArrayList<EnemyBullet> enemyBulletList = new ArrayList<EnemyBullet>();
     private ArrayList<EnemyBullet> enemyBulletListOut = new ArrayList<EnemyBullet>();
+    private ArrayList<Special> specials = new ArrayList<Special>();
+    private ArrayList<Special> specialsOut = new ArrayList<Special>();
     private Vector3f upVector = new Vector3f(0, 1, 0);
     private Vector3f anterior = new Vector3f();
+    private int greenAmmo = 0;
+    private int yellowAmmo = 0;
     Random rand = new Random();
 
     public static void main(String[] args) {
@@ -62,12 +72,11 @@ public class Main extends SimpleApplication implements AnimEventListener {
         flyCam.setMoveSpeed(75);
         bulletNode = new Node("BulletNode");
         enemyBulletNode = new Node("EnemyBulletNode");
-        
+        bulletColor = ColorRGBA.Blue;
+
         /**
          * A white, directional light source
          */
-        
-        
         DirectionalLight sun = new DirectionalLight();
         sun.setDirection((new Vector3f(-0.5f, -0.5f, -0.5f)).normalizeLocal());
         sun.setColor(ColorRGBA.White);
@@ -78,8 +87,6 @@ public class Main extends SimpleApplication implements AnimEventListener {
         tank = createTank("MyTank");
         tank.setLocalTranslation(0, -3, 0);
         rootNode.attachChild(tank);
-        
-      
 
         camNode = new CameraNode("CamNode", cam);
         //camNode.setControlDir(ControlDirection.SpatialToCamera);
@@ -95,7 +102,6 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
         camNode.setLocalTranslation(pos);
         camNode.lookAt(posinit, Vector3f.UNIT_Z);
-
     }
 
     @Override
@@ -105,47 +111,40 @@ public class Main extends SimpleApplication implements AnimEventListener {
         //tank.move(0,0,tpf);
         //camNode.lookAt(posinit, Vector3f.UNIT_Z);
         long time = System.currentTimeMillis();
-        for(Spatial a: bulletNode.getChildren())
-        {
+        for (Spatial a : bulletNode.getChildren()) {
             boolean hasCollisionBullet = true;
-            a.move(0,0,tpf*30);
-            
-            if(hasCollisionBullet(a))
-            {
+            a.move(0, 0, tpf * 40);
+
+            if (hasCollisionBullet(a)) {
                 bulletNode.detachChild(a);
                 rootNode.detachChild(a);
             }
-             
-            if(a.getLocalTranslation().getZ() >= 41.5)
-            {
+
+            if (a.getLocalTranslation().getZ() >= 41.5) {
                 bulletNode.detachChild(a);
                 rootNode.detachChild(a);
             }
         }
-        
-        for(EnemyBullet eb: enemyBulletList)
-        {
-            eb.getGeom().move(eb.getEnemy().getSpatial().getLocalRotation().getW()*75*tpf, 0, -tpf*30);
-            
-            if(eb.getGeom().getLocalTranslation().getZ() <= -14.5f)
-            {
+
+        for (EnemyBullet eb : enemyBulletList) {
+            eb.getGeom().move(eb.getEnemy().getSpatial().getLocalRotation().getW() * 75 * tpf, 0, -tpf * 30);
+
+            if (eb.getGeom().getLocalTranslation().getZ() <= -14.5f) {
                 enemyBulletNode.detachChild(eb.getGeom());
                 rootNode.detachChild(eb.getGeom());
                 enemyBulletListOut.add(eb);
-            } 
-            
-            if(hasCollisionEnemyBullet(eb))
-            {
-                System.out.println("ME ACERTARAM");
+            }
+
+            if (hasCollisionEnemyBullet(eb)) {
                 enemyBulletNode.detachChild(eb.getGeom());
                 rootNode.detachChild(eb.getGeom());
                 enemyBulletListOut.add(eb);
             }
         }
-        
+
         eliminateEnemyBullets();
 
-        if (time > delayEnemy + 3000) {
+        if (time > delayEnemy + 4000) {
             boolean hasCollision = true;
 
             Enemy enemy = createEnemy(time);
@@ -156,22 +155,51 @@ public class Main extends SimpleApplication implements AnimEventListener {
                 }
 
             } while (hasCollision);
-            
+
             enemyList.add(enemy);
             rootNode.attachChild(enemy.getSpatial());
         }
-        
-        for(Enemy e: enemyList)
-        {
+
+        for (Enemy e : enemyList) {
             e.getSpatial().lookAt(tank.getLocalTranslation(), upVector);
-            if(time > e.getDelayEnemyBullet() + 1500)
-            {
+            if (time > e.getDelayEnemyBullet() + ((rand.nextInt(5) + 2) * 1000)) {
                 EnemyBullet eb = createEnemyBullet(e, time);
                 enemyBulletList.add(eb);
                 enemyBulletNode.attachChild(eb.getGeom());
                 rootNode.attachChild(enemyBulletNode);
             }
         }
+
+        if (time > delayMediumSpecial + ((rand.nextInt(20) + 10) * 1000)) {
+            Special mediumSpecial = createSpecial(time, ColorRGBA.Green);
+
+            rootNode.attachChild(mediumSpecial.getGeom());
+            specials.add(mediumSpecial);
+        }
+        
+        if (time > delayStrongSpecial + ((rand.nextInt(60) + 30) * 1000)) {
+            Special strongSpecial = createSpecial(time, ColorRGBA.Yellow);
+
+            rootNode.attachChild(strongSpecial.getGeom());
+            specials.add(strongSpecial);
+        }
+        
+        for(Special s: specials)
+        {
+            s.getGeom().move((rand.nextInt(25) - 10)*tpf, 0, (rand.nextInt(25) - 10)*tpf);
+            if(hasCollisionSpecial(s.getGeom()))
+            {
+                if(s.getColorName().equals("Green"))
+                    greenAmmo += 20;
+                else if(s.getColorName().equals("Yellow"))
+                    yellowAmmo += 10;
+
+                rootNode.detachChild(s.getGeom());
+                specialsOut.add(s);
+            }
+        }
+        
+        eliminateSpecials();
         
         anterior = tank.getLocalTranslation();
     }
@@ -221,53 +249,90 @@ public class Main extends SimpleApplication implements AnimEventListener {
         }
         return false;
     }
-    
+
     public boolean hasCollisionBullet(Spatial geo) {
         CollisionResults results = new CollisionResults();
-        
+
         for (Enemy e : enemyList) {
             geo.collideWith(e.getSpatial().getWorldBound(), results);
-            
+
             if (results.size() > 0) {
-                System.out.println("Acertou!!!!");
                 rootNode.detachChild(e.getSpatial());
                 enemyList.remove(e);
-                return true;                        
+                return true;
             }
         }
         return false;
     }
-    
+
     public boolean hasCollisionEnemyBullet(EnemyBullet eb) {
         CollisionResults results = new CollisionResults();
-        
+
         eb.getGeom().collideWith(tank.getWorldBound(), results);
-            
+
         if (results.size() > 0) {
-            System.out.println("Acertou!!!!");
-            return true;                        
+            return true;
         }
-        
+
         return false;
     }
-    
-    public Geometry createBullet(){
+
+    public Geometry createBullet(ColorRGBA color) {
+
+        //Blue: Bala Fraca - Dano 25
+        //Green: Bala Média - Dano 50
+        //Yellow: Bala Forte - Dano 100
+        //Implementar o dano de cada bala
         Box b = new Box(0.1f, 0.1f, 0.8f);
         Geometry geom = new Geometry("Box", b);
         geom.setLocalTranslation(tank.getLocalTranslation());
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.setColor("Color", ColorRGBA.Blue);
+        mat.setColor("Color", color);
+        geom.setMaterial(mat);
+        return geom;
+    }
+
+    public Special createSpecial(long time, ColorRGBA color) {     
+        if(color == ColorRGBA.Green)
+            delayMediumSpecial = time;
+        else
+            delayStrongSpecial = time;
+
+        Special s = new Special();
+        
+        Sphere sphere = new Sphere(30, 30, 0.5f);
+        Geometry geom = new Geometry("MediumSpecial", sphere);
+        geom.setLocalTranslation(((rand.nextFloat() * 70) - 40), -3, (rand.nextInt(14) + 7));
+        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", color);
         geom.setMaterial(mat);
         
-        return geom;  
+        s.setGeom(geom);
+        if(color == ColorRGBA.Green)
+            s.setColorName("Green");
+        else
+            s.setColorName("Yellow");
+        
+        return s;
     }
-    
-    public EnemyBullet createEnemyBullet(Enemy e, long timeEnemyBullet)
-    {
+
+    public boolean hasCollisionSpecial(Spatial g) {
+        CollisionResults results = new CollisionResults();
+
+        tank.collideWith(g.getWorldBound(), results);
+
+        if (results.size() > 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public EnemyBullet createEnemyBullet(Enemy e, long timeEnemyBullet) {
         e.setDelayEnemyBullet(timeEnemyBullet);
-        
+
         EnemyBullet enemyBullet = new EnemyBullet();
-        
+
         Box b = new Box(0.1f, 0.1f, 0.8f);
         Geometry geom = new Geometry("Box", b);
         geom.setLocalTranslation(e.getSpatial().getLocalTranslation());
@@ -275,22 +340,30 @@ public class Main extends SimpleApplication implements AnimEventListener {
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         mat.setColor("Color", ColorRGBA.Red);
         geom.setMaterial(mat);
-        
+
         enemyBullet.setName("EnemyBullet");
         enemyBullet.setGeom(geom);
         enemyBullet.setEnemy(e);
-        
-        return enemyBullet;  
+
+        return enemyBullet;
     }
-    
-    public void eliminateEnemyBullets()
-    {
-        for(EnemyBullet eb: enemyBulletListOut)
-        {
+
+    public void eliminateEnemyBullets() {
+        for (EnemyBullet eb : enemyBulletListOut) {
             enemyBulletList.remove(eb);
         }
-        
+
         enemyBulletListOut.clear();
+    }
+    
+    public void eliminateSpecials()
+    {
+        for(Special s: specialsOut)
+        {
+            specials.remove(s);
+        }
+        
+        specialsOut.clear();
     }
 
     @Override
@@ -303,16 +376,22 @@ public class Main extends SimpleApplication implements AnimEventListener {
     }
 
     private void initKeys() {
-        inputManager.addMapping("Shoot", new KeyTrigger(KeyInput.KEY_SPACE));
+        inputManager.addMapping("Shoot", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
         inputManager.addMapping("Front", new KeyTrigger(KeyInput.KEY_W));
         inputManager.addMapping("Back", new KeyTrigger(KeyInput.KEY_S));
         inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_D));
         inputManager.addMapping("Left", new KeyTrigger(KeyInput.KEY_A));
+        inputManager.addMapping("ChangeBlue", new KeyTrigger(KeyInput.KEY_C));
+        inputManager.addMapping("ChangeGreen", new KeyTrigger(KeyInput.KEY_V));
+        inputManager.addMapping("ChangeYellow", new KeyTrigger(KeyInput.KEY_B));
         inputManager.addListener(actionListener, "Shoot");
         inputManager.addListener(analogListener, "Front");
         inputManager.addListener(analogListener, "Back");
         inputManager.addListener(analogListener, "Right");
         inputManager.addListener(analogListener, "Left");
+        inputManager.addListener(actionListener, "ChangeBlue");
+        inputManager.addListener(actionListener, "ChangeGreen");
+        inputManager.addListener(actionListener, "ChangeYellow");
     }
 
     /**
@@ -322,37 +401,51 @@ public class Main extends SimpleApplication implements AnimEventListener {
     private ActionListener actionListener = new ActionListener() {
 
         public void onAction(String name, boolean keyPressed, float tpf) {
-            if (name.equals("Shoot") && !keyPressed) {
-                bulletNode.attachChild(createBullet());
-                rootNode.attachChild(bulletNode);
-                    
+            
+            if((bulletColor == ColorRGBA.Blue) 
+                || (bulletColor == ColorRGBA.Green && greenAmmo > 0)
+                || (bulletColor == ColorRGBA.Yellow && yellowAmmo > 0))
+            {
+                if (name.equals("Shoot") && !keyPressed) {
+                    bulletNode.attachChild(createBullet(bulletColor));
+                    rootNode.attachChild(bulletNode);
+
+                    if(bulletColor == ColorRGBA.Green)
+                        greenAmmo--;
+                    else if(bulletColor == ColorRGBA.Yellow)
+                        yellowAmmo--;
+                }
+                //Printar na tela a munição de cada bala que possui
             }
             
+            if (name.equals("ChangeBlue") && !keyPressed)
+                bulletColor = ColorRGBA.Blue;
             
+            if (name.equals("ChangeGreen") && !keyPressed)
+                bulletColor = ColorRGBA.Green;
+            
+            if (name.equals("ChangeYellow") && !keyPressed)
+                bulletColor = ColorRGBA.Yellow;
         }
     };
-    
+
     private AnalogListener analogListener = new AnalogListener() {
-        
+
         public void onAnalog(String name, float value, float tpf) {
-            
-            if(name.equals("Front"))
-            {   
+
+            if (name.equals("Front")) {
                 tank.move(0, 0, 0.02f);
             }
-            
-            if(name.equals("Back"))
-            {   
+
+            if (name.equals("Back")) {
                 tank.move(0, 0, -0.02f);
             }
-            
-            if(name.equals("Right"))
-            {   
+
+            if (name.equals("Right")) {
                 tank.move(-0.02f, 0, 0);
             }
-            
-            if(name.equals("Left"))
-            {   
+
+            if (name.equals("Left")) {
                 tank.move(0.02f, 0, 0);
             }
         }
