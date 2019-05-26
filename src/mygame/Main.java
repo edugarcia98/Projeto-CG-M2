@@ -6,6 +6,7 @@ import com.jme3.animation.AnimEventListener;
 import com.jme3.app.SimpleApplication;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
+import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
@@ -26,6 +27,7 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.control.CameraControl.ControlDirection;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Sphere;
+import static java.awt.SystemColor.text;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -59,6 +61,11 @@ public class Main extends SimpleApplication implements AnimEventListener {
     private int greenAmmo = 0;
     private int yellowAmmo = 0;
     Random rand = new Random();
+    private boolean fimJogo = false;
+    private int score = 0;
+    private BitmapText text;
+    private BitmapText finalScore;
+    private BitmapText scoreText;
 
     public static void main(String[] args) {
         Main app = new Main();
@@ -110,12 +117,24 @@ public class Main extends SimpleApplication implements AnimEventListener {
         //TODO: add update code
         //tank.move(0,0,tpf);
         //camNode.lookAt(posinit, Vector3f.UNIT_Z);
+    if(!fimJogo){
+        guiNode.detachAllChildren();
+        
+        scoreText = new BitmapText(guiFont, false);
+        scoreText.setSize(guiFont.getCharSet().getRenderedSize());
+        scoreText.setLocalTranslation(10, text.getLineHeight()*22.5f, 0);
+        scoreText.setText("Score: " + score);
+        guiNode.attachChild(scoreText);
+
+        
+        
         long time = System.currentTimeMillis();
         for (Spatial a : bulletNode.getChildren()) {
             boolean hasCollisionBullet = true;
             a.move(0, 0, tpf * 40);
 
             if (hasCollisionBullet(a)) {
+                
                 bulletNode.detachChild(a);
                 rootNode.detachChild(a);
             }
@@ -189,19 +208,59 @@ public class Main extends SimpleApplication implements AnimEventListener {
             s.getGeom().move((rand.nextInt(25) - 10)*tpf, 0, (rand.nextInt(25) - 10)*tpf);
             if(hasCollisionSpecial(s.getGeom()))
             {
-                if(s.getColorName().equals("Green"))
-                    greenAmmo += 20;
-                else if(s.getColorName().equals("Yellow"))
-                    yellowAmmo += 10;
-
+                System.out.println("ANTES DA MUDANÇA DO ESPECIAL");
+                System.out.println("VERDE:" + greenAmmo);
+                System.out.println("AMARELO:" + yellowAmmo);
+                if(s.getColorName().equals("Green")){
+                    greenAmmo = 20;
+                    bulletColor = ColorRGBA.Green;
+                    
+                }
+                    
+                else if(s.getColorName().equals("Yellow")){
+                    yellowAmmo = 10;         
+                    bulletColor = ColorRGBA.Yellow;
+                }
                 rootNode.detachChild(s.getGeom());
                 specialsOut.add(s);
             }
+            if((greenAmmo == 0) && (yellowAmmo == 0))
+                bulletColor = ColorRGBA.Blue;
+            
         }
-        
         eliminateSpecials();
-        
         anterior = tank.getLocalTranslation();
+               
+        }
+    else{
+        for (Spatial a : bulletNode.getChildren()) {
+          
+                bulletNode.detachChild(a);// tirando as balas
+                rootNode.detachChild(a);
+     
+            }
+            for(Enemy e : enemyList){
+                    rootNode.detachChild(e.getSpatial()); // tirando os enemy   
+            }
+            for(Special s : specials)
+            {
+                rootNode.detachChild(s.getGeom());        
+            }
+            specials.removeAll(specials);
+            enemyList.removeAll(enemyList);
+               
+                text = new BitmapText(guiFont, false);
+                text.setSize(guiFont.getCharSet().getRenderedSize());
+                text.setLocalTranslation(230, text.getLineHeight()*17, 0);
+                text.setText("FIM DE JOGO");
+                guiNode.attachChild(text);
+                
+                finalScore = new BitmapText(guiFont, false);
+                finalScore.setSize(guiFont.getCharSet().getRenderedSize());
+                finalScore.setLocalTranslation(200, text.getLineHeight()*15, 0);
+                finalScore.setText("SCORE " + score);
+                guiNode.attachChild(finalScore);
+        }
     }
 
     @Override
@@ -252,16 +311,19 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
     public boolean hasCollisionBullet(Spatial geo) {
         CollisionResults results = new CollisionResults();
-
+        
         for (Enemy e : enemyList) {
             geo.collideWith(e.getSpatial().getWorldBound(), results);
+            
 
-            if (results.size() > 0) {
-                rootNode.detachChild(e.getSpatial());
-                enemyList.remove(e);
-                return true;
+            if (results.size() > 0) {                     
+                    rootNode.detachChild(e.getSpatial());
+                    enemyList.remove(e);
+                    score++;
+                    return true;
+                }
             }
-        }
+        
         return false;
     }
 
@@ -271,12 +333,13 @@ public class Main extends SimpleApplication implements AnimEventListener {
         eb.getGeom().collideWith(tank.getWorldBound(), results);
 
         if (results.size() > 0) {
+            fimJogo = true;
             return true;
         }
 
         return false;
     }
-
+     
     public Geometry createBullet(ColorRGBA color) {
 
         //Blue: Bala Fraca - Dano 25
@@ -381,17 +444,21 @@ public class Main extends SimpleApplication implements AnimEventListener {
         inputManager.addMapping("Back", new KeyTrigger(KeyInput.KEY_S));
         inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_D));
         inputManager.addMapping("Left", new KeyTrigger(KeyInput.KEY_A));
-        inputManager.addMapping("ChangeBlue", new KeyTrigger(KeyInput.KEY_C));
+        inputManager.addMapping("Reiniciar", new KeyTrigger(KeyInput.KEY_R));
+        /*inputManager.addMapping("ChangeBlue", new KeyTrigger(KeyInput.KEY_C));
         inputManager.addMapping("ChangeGreen", new KeyTrigger(KeyInput.KEY_V));
-        inputManager.addMapping("ChangeYellow", new KeyTrigger(KeyInput.KEY_B));
+        inputManager.addMapping("ChangeYellow", new KeyTrigger(KeyInput.KEY_B));*/
         inputManager.addListener(actionListener, "Shoot");
         inputManager.addListener(analogListener, "Front");
         inputManager.addListener(analogListener, "Back");
         inputManager.addListener(analogListener, "Right");
         inputManager.addListener(analogListener, "Left");
-        inputManager.addListener(actionListener, "ChangeBlue");
+        inputManager.addListener(actionListener, "Reiniciar");
+        
+        
+        /*inputManager.addListener(actionListener, "ChangeBlue");
         inputManager.addListener(actionListener, "ChangeGreen");
-        inputManager.addListener(actionListener, "ChangeYellow");
+        inputManager.addListener(actionListener, "ChangeYellow");*/
     }
 
     /**
@@ -409,6 +476,9 @@ public class Main extends SimpleApplication implements AnimEventListener {
                 if (name.equals("Shoot") && !keyPressed) {
                     bulletNode.attachChild(createBullet(bulletColor));
                     rootNode.attachChild(bulletNode);
+                    System.out.println("ATIRANDO:");
+                    System.out.println("VERDE:" + greenAmmo);
+                    System.out.println("AMARELO:" + yellowAmmo);
 
                     if(bulletColor == ColorRGBA.Green)
                         greenAmmo--;
@@ -417,36 +487,46 @@ public class Main extends SimpleApplication implements AnimEventListener {
                 }
                 //Printar na tela a munição de cada bala que possui
             }
+            if(name.equals("Reiniciar") && !keyPressed)
+            {
+                fimJogo = false;
+                score = 0;
+                
+                
+            }
             
-            if (name.equals("ChangeBlue") && !keyPressed)
+            /*if (name.equals("ChangeBlue") && !keyPressed)
                 bulletColor = ColorRGBA.Blue;
             
             if (name.equals("ChangeGreen") && !keyPressed)
                 bulletColor = ColorRGBA.Green;
             
             if (name.equals("ChangeYellow") && !keyPressed)
-                bulletColor = ColorRGBA.Yellow;
+                bulletColor = ColorRGBA.Yellow;*/
         }
     };
 
     private AnalogListener analogListener = new AnalogListener() {
 
         public void onAnalog(String name, float value, float tpf) {
+        
+            if(!fimJogo){
 
-            if (name.equals("Front")) {
-                tank.move(0, 0, 0.02f);
-            }
+                        if (name.equals("Front")) {
+                            tank.move(0, 0, 0.02f);
+                        }
 
-            if (name.equals("Back")) {
-                tank.move(0, 0, -0.02f);
-            }
+                        if (name.equals("Back")) {
+                            tank.move(0, 0, -0.02f);
+                        }
 
-            if (name.equals("Right")) {
-                tank.move(-0.02f, 0, 0);
-            }
+                        if (name.equals("Right")) {
+                            tank.move(-0.02f, 0, 0);
+                        }
 
-            if (name.equals("Left")) {
-                tank.move(0.02f, 0, 0);
+                        if (name.equals("Left")) {
+                            tank.move(0.02f, 0, 0);
+                        }
             }
         }
     };

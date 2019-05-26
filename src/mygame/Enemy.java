@@ -20,6 +20,16 @@ public class Enemy {
     private AnimControl control;
     private String name;
     private long delayEnemyBullet;
+    private int life = 100;
+
+    public int getLife() {
+        return life;
+    }
+
+    public void setLife(int life) {
+        this.life = life;
+    }
+    
 
     public Spatial getSpatial() {
         return spatial;
