@@ -122,7 +122,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
         
         scoreText = new BitmapText(guiFont, false);
         scoreText.setSize(guiFont.getCharSet().getRenderedSize());
-        scoreText.setLocalTranslation(10, text.getLineHeight()*22.5f, 0);
+        scoreText.setLocalTranslation(10, scoreText.getLineHeight()*22.5f, 0);
         scoreText.setText("Score: " + score);
         guiNode.attachChild(scoreText);
 
@@ -333,7 +333,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
         eb.getGeom().collideWith(tank.getWorldBound(), results);
 
         if (results.size() > 0) {
-            fimJogo = true;
+            //fimJogo = true;
             return true;
         }
 
@@ -445,20 +445,18 @@ public class Main extends SimpleApplication implements AnimEventListener {
         inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_D));
         inputManager.addMapping("Left", new KeyTrigger(KeyInput.KEY_A));
         inputManager.addMapping("Reiniciar", new KeyTrigger(KeyInput.KEY_R));
-        /*inputManager.addMapping("ChangeBlue", new KeyTrigger(KeyInput.KEY_C));
+        inputManager.addMapping("ChangeBlue", new KeyTrigger(KeyInput.KEY_C));
         inputManager.addMapping("ChangeGreen", new KeyTrigger(KeyInput.KEY_V));
-        inputManager.addMapping("ChangeYellow", new KeyTrigger(KeyInput.KEY_B));*/
+        inputManager.addMapping("ChangeYellow", new KeyTrigger(KeyInput.KEY_B));
         inputManager.addListener(actionListener, "Shoot");
         inputManager.addListener(analogListener, "Front");
         inputManager.addListener(analogListener, "Back");
         inputManager.addListener(analogListener, "Right");
         inputManager.addListener(analogListener, "Left");
         inputManager.addListener(actionListener, "Reiniciar");
-        
-        
-        /*inputManager.addListener(actionListener, "ChangeBlue");
+        inputManager.addListener(actionListener, "ChangeBlue");
         inputManager.addListener(actionListener, "ChangeGreen");
-        inputManager.addListener(actionListener, "ChangeYellow");*/
+        inputManager.addListener(actionListener, "ChangeYellow");
     }
 
     /**
@@ -489,20 +487,20 @@ public class Main extends SimpleApplication implements AnimEventListener {
             }
             if(name.equals("Reiniciar") && !keyPressed)
             {
-                fimJogo = false;
+                //fimJogo = false;
                 score = 0;
                 
                 
             }
             
-            /*if (name.equals("ChangeBlue") && !keyPressed)
+            if (name.equals("ChangeBlue") && !keyPressed)
                 bulletColor = ColorRGBA.Blue;
             
             if (name.equals("ChangeGreen") && !keyPressed)
                 bulletColor = ColorRGBA.Green;
             
             if (name.equals("ChangeYellow") && !keyPressed)
-                bulletColor = ColorRGBA.Yellow;*/
+                bulletColor = ColorRGBA.Yellow;
         }
     };
 
