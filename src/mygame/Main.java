@@ -45,6 +45,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
     private Vector3f posinit;
     private Spatial tank;
     private int cont = 1;
+    private int life = 100;
     private long delayEnemy;
     private long delayMediumSpecial;
     private long delayStrongSpecial;
@@ -62,10 +63,15 @@ public class Main extends SimpleApplication implements AnimEventListener {
     private int yellowAmmo = 0;
     Random rand = new Random();
     private boolean fimJogo = false;
+    private boolean gamePaused = false;
     private int score = 0;
     private BitmapText text;
     private BitmapText finalScore;
     private BitmapText scoreText;
+    private BitmapText lifeText;
+    private BitmapText blueAmmoText;
+    private BitmapText greenAmmoText;
+    private BitmapText yellowAmmoText;
 
     public static void main(String[] args) {
         Main app = new Main();
@@ -117,149 +123,169 @@ public class Main extends SimpleApplication implements AnimEventListener {
         //TODO: add update code
         //tank.move(0,0,tpf);
         //camNode.lookAt(posinit, Vector3f.UNIT_Z);
-    if(!fimJogo){
-        guiNode.detachAllChildren();
-        
-        scoreText = new BitmapText(guiFont, false);
-        scoreText.setSize(guiFont.getCharSet().getRenderedSize());
-        scoreText.setLocalTranslation(10, scoreText.getLineHeight()*22.5f, 0);
-        scoreText.setText("Score: " + score);
-        guiNode.attachChild(scoreText);
-
-        
-        
-        long time = System.currentTimeMillis();
-        for (Spatial a : bulletNode.getChildren()) {
-            boolean hasCollisionBullet = true;
-            a.move(0, 0, tpf * 40);
-
-            if (hasCollisionBullet(a)) {
-                
-                bulletNode.detachChild(a);
-                rootNode.detachChild(a);
-            }
-
-            if (a.getLocalTranslation().getZ() >= 41.5) {
-                bulletNode.detachChild(a);
-                rootNode.detachChild(a);
-            }
-        }
-
-        for (EnemyBullet eb : enemyBulletList) {
-            eb.getGeom().move(eb.getEnemy().getSpatial().getLocalRotation().getW() * 75 * tpf, 0, -tpf * 30);
-
-            if (eb.getGeom().getLocalTranslation().getZ() <= -14.5f) {
-                enemyBulletNode.detachChild(eb.getGeom());
-                rootNode.detachChild(eb.getGeom());
-                enemyBulletListOut.add(eb);
-            }
-
-            if (hasCollisionEnemyBullet(eb)) {
-                enemyBulletNode.detachChild(eb.getGeom());
-                rootNode.detachChild(eb.getGeom());
-                enemyBulletListOut.add(eb);
-            }
-        }
-
-        eliminateEnemyBullets();
-
-        if (time > delayEnemy + 4000) {
-            boolean hasCollision = true;
-
-            Enemy enemy = createEnemy(time);
-            do {
-                hasCollision = hasCollision(enemy);
-                if (hasCollision) {
-                    enemy.getSpatial().setLocalTranslation(((rand.nextFloat() * 70) - 40), -3, 30);
-                }
-
-            } while (hasCollision);
-
-            enemyList.add(enemy);
-            rootNode.attachChild(enemy.getSpatial());
-        }
-
-        for (Enemy e : enemyList) {
-            e.getSpatial().lookAt(tank.getLocalTranslation(), upVector);
-            if (time > e.getDelayEnemyBullet() + ((rand.nextInt(5) + 2) * 1000)) {
-                EnemyBullet eb = createEnemyBullet(e, time);
-                enemyBulletList.add(eb);
-                enemyBulletNode.attachChild(eb.getGeom());
-                rootNode.attachChild(enemyBulletNode);
-            }
-        }
-
-        if (time > delayMediumSpecial + ((rand.nextInt(20) + 10) * 1000)) {
-            Special mediumSpecial = createSpecial(time, ColorRGBA.Green);
-
-            rootNode.attachChild(mediumSpecial.getGeom());
-            specials.add(mediumSpecial);
-        }
-        
-        if (time > delayStrongSpecial + ((rand.nextInt(60) + 30) * 1000)) {
-            Special strongSpecial = createSpecial(time, ColorRGBA.Yellow);
-
-            rootNode.attachChild(strongSpecial.getGeom());
-            specials.add(strongSpecial);
-        }
-        
-        for(Special s: specials)
+        if(!gamePaused)
         {
-            s.getGeom().move((rand.nextInt(25) - 10)*tpf, 0, (rand.nextInt(25) - 10)*tpf);
-            if(hasCollisionSpecial(s.getGeom()))
-            {
-                System.out.println("ANTES DA MUDANÇA DO ESPECIAL");
-                System.out.println("VERDE:" + greenAmmo);
-                System.out.println("AMARELO:" + yellowAmmo);
-                if(s.getColorName().equals("Green")){
-                    greenAmmo = 20;
-                    bulletColor = ColorRGBA.Green;
-                    
+            if (!fimJogo) {
+                guiNode.detachAllChildren();
+
+                scoreText = new BitmapText(guiFont, false);
+                scoreText.setSize(guiFont.getCharSet().getRenderedSize());
+                scoreText.setLocalTranslation(10, scoreText.getLineHeight() * 22.5f, 0);
+                scoreText.setText("Score: " + score);
+                guiNode.attachChild(scoreText);
+
+                lifeText = new BitmapText(guiFont, false);
+                lifeText.setSize(guiFont.getCharSet().getRenderedSize());
+                lifeText.setLocalTranslation(10, lifeText.getLineHeight() * 21f, 0);
+                lifeText.setText("Life: " + life + "%");
+                guiNode.attachChild(lifeText);
+
+                blueAmmoText = new BitmapText(guiFont, false);
+                blueAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
+                blueAmmoText.setLocalTranslation(450, blueAmmoText.getLineHeight() * 22.5f, 0);
+                blueAmmoText.setText("Municao Azul: INFINITA");
+                guiNode.attachChild(blueAmmoText);
+
+                greenAmmoText = new BitmapText(guiFont, false);
+                greenAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
+                greenAmmoText.setLocalTranslation(450, greenAmmoText.getLineHeight() * 21f, 0);
+                greenAmmoText.setText("Municao Verde: " + greenAmmo);
+                guiNode.attachChild(greenAmmoText);
+
+                yellowAmmoText = new BitmapText(guiFont, false);
+                yellowAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
+                yellowAmmoText.setLocalTranslation(450, greenAmmoText.getLineHeight() * 19.5f, 0);
+                yellowAmmoText.setText("Municao Amarela: " + yellowAmmo);
+                guiNode.attachChild(yellowAmmoText);
+
+                long time = System.currentTimeMillis();
+                for (Spatial a : bulletNode.getChildren()) {
+                    boolean hasCollisionBullet = true;
+                    a.move(0, 0, tpf * 40);
+
+                    if (hasCollisionBullet(a)) {
+
+                        bulletNode.detachChild(a);
+                        rootNode.detachChild(a);
+                    }
+
+                    if (a.getLocalTranslation().getZ() >= 41.5) {
+                        bulletNode.detachChild(a);
+                        rootNode.detachChild(a);
+                    }
                 }
-                    
-                else if(s.getColorName().equals("Yellow")){
-                    yellowAmmo = 10;         
-                    bulletColor = ColorRGBA.Yellow;
+
+                for (EnemyBullet eb : enemyBulletList) {
+                    eb.getGeom().move(eb.getEnemy().getSpatial().getLocalRotation().getW() * 75 * tpf, 0, -tpf * 30);
+
+                    if (eb.getGeom().getLocalTranslation().getZ() <= -14.5f) {
+                        enemyBulletNode.detachChild(eb.getGeom());
+                        rootNode.detachChild(eb.getGeom());
+                        enemyBulletListOut.add(eb);
+                    }
+
+                    if (hasCollisionEnemyBullet(eb)) {
+                        enemyBulletNode.detachChild(eb.getGeom());
+                        rootNode.detachChild(eb.getGeom());
+                        enemyBulletListOut.add(eb);
+                    }
                 }
-                rootNode.detachChild(s.getGeom());
-                specialsOut.add(s);
-            }
-            if((greenAmmo == 0) && (yellowAmmo == 0))
-                bulletColor = ColorRGBA.Blue;
-            
-        }
-        eliminateSpecials();
-        anterior = tank.getLocalTranslation();
-               
-        }
-    else{
-        for (Spatial a : bulletNode.getChildren()) {
-          
-                bulletNode.detachChild(a);// tirando as balas
-                rootNode.detachChild(a);
-     
-            }
-            for(Enemy e : enemyList){
+
+                eliminateEnemyBullets();
+
+                if (time > delayEnemy + 4000) {
+                    boolean hasCollision = true;
+
+                    Enemy enemy = createEnemy(time);
+                    do {
+                        hasCollision = hasCollision(enemy);
+                        if (hasCollision) {
+                            enemy.getSpatial().setLocalTranslation(((rand.nextFloat() * 70) - 40), -3, 30);
+                        }
+
+                    } while (hasCollision);
+
+                    enemyList.add(enemy);
+                    rootNode.attachChild(enemy.getSpatial());
+                }
+
+                for (Enemy e : enemyList) {
+                    e.getSpatial().lookAt(tank.getLocalTranslation(), upVector);
+                    if (time > e.getDelayEnemyBullet() + ((rand.nextInt(5) + 2) * 1000)) {
+                        EnemyBullet eb = createEnemyBullet(e, time);
+                        enemyBulletList.add(eb);
+                        enemyBulletNode.attachChild(eb.getGeom());
+                        rootNode.attachChild(enemyBulletNode);
+                    }
+                }
+
+                if (time > delayMediumSpecial + ((rand.nextInt(20) + 30) * 1000)) {
+                    Special mediumSpecial = createSpecial(time, ColorRGBA.Green);
+
+                    rootNode.attachChild(mediumSpecial.getGeom());
+                    specials.add(mediumSpecial);
+                }
+
+                if (time > delayStrongSpecial + ((rand.nextInt(60) + 30) * 1000)) {
+                    Special strongSpecial = createSpecial(time, ColorRGBA.Yellow);
+
+                    rootNode.attachChild(strongSpecial.getGeom());
+                    specials.add(strongSpecial);
+                }
+
+                for (Special s : specials) {
+                    s.getGeom().move((rand.nextInt(25) - 10) * tpf, 0, (rand.nextInt(25) - 10) * tpf);
+                    if (hasCollisionSpecial(s.getGeom())) {
+                        System.out.println("ANTES DA MUDANÇA DO ESPECIAL");
+                        System.out.println("VERDE:" + greenAmmo);
+                        System.out.println("AMARELO:" + yellowAmmo);
+                        if (s.getColorName().equals("Green")) {
+                            greenAmmo += 20;
+                            bulletColor = ColorRGBA.Green;
+
+                        } else if (s.getColorName().equals("Yellow")) {
+                            yellowAmmo += 10;
+                            bulletColor = ColorRGBA.Yellow;
+                        }
+                        rootNode.detachChild(s.getGeom());
+                        specialsOut.add(s);
+                    }
+                    if ((greenAmmo == 0) && (yellowAmmo == 0)) {
+                        bulletColor = ColorRGBA.Blue;
+                    }
+
+                }
+                eliminateSpecials();
+                anterior = tank.getLocalTranslation();
+
+            } else {
+                for (Spatial a : bulletNode.getChildren()) {
+
+                    bulletNode.detachChild(a);// tirando as balas
+                    rootNode.detachChild(a);
+
+                }
+                for (Enemy e : enemyList) {
                     rootNode.detachChild(e.getSpatial()); // tirando os enemy   
-            }
-            for(Special s : specials)
-            {
-                rootNode.detachChild(s.getGeom());        
-            }
-            specials.removeAll(specials);
-            enemyList.removeAll(enemyList);
-               
+                }
+                for (Special s : specials) {
+                    rootNode.detachChild(s.getGeom());
+                }
+                specials.removeAll(specials);
+                enemyList.removeAll(enemyList);
+
                 text = new BitmapText(guiFont, false);
                 text.setSize(guiFont.getCharSet().getRenderedSize());
-                text.setLocalTranslation(230, text.getLineHeight()*17, 0);
+                text.setLocalTranslation(230, text.getLineHeight() * 17, 0);
                 text.setText("FIM DE JOGO");
                 guiNode.attachChild(text);
-                
+
                 finalScore = new BitmapText(guiFont, false);
                 finalScore.setSize(guiFont.getCharSet().getRenderedSize());
-                finalScore.setLocalTranslation(200, text.getLineHeight()*15, 0);
+                finalScore.setLocalTranslation(200, text.getLineHeight() * 15, 0);
                 finalScore.setText("SCORE " + score);
                 guiNode.attachChild(finalScore);
+            }
         }
     }
 
@@ -311,19 +337,30 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
     public boolean hasCollisionBullet(Spatial geo) {
         CollisionResults results = new CollisionResults();
-        
+
         for (Enemy e : enemyList) {
             geo.collideWith(e.getSpatial().getWorldBound(), results);
-            
 
-            if (results.size() > 0) {                     
+            if (results.size() > 0) {
+                System.out.println(geo.getName());
+                if (geo.getName().equals("BlueBullet")) {
+                    e.setLife(e.getLife() - 25);
+                } else if (geo.getName().equals("GreenBullet")) {
+                    e.setLife(e.getLife() - 50);
+                } else if (geo.getName().equals("YellowBullet")) {
+                    e.setLife(e.getLife() - 100);
+                }
+
+                if (e.getLife() <= 0) {
                     rootNode.detachChild(e.getSpatial());
                     enemyList.remove(e);
                     score++;
-                    return true;
                 }
+
+                return true;
             }
-        
+        }
+
         return false;
     }
 
@@ -333,14 +370,19 @@ public class Main extends SimpleApplication implements AnimEventListener {
         eb.getGeom().collideWith(tank.getWorldBound(), results);
 
         if (results.size() > 0) {
-            //fimJogo = true;
+            life -= 10;
+
+            if (life <= 0) {
+                fimJogo = true;
+            }
+
             return true;
         }
 
         return false;
     }
-     
-    public Geometry createBullet(ColorRGBA color) {
+
+    public Geometry createBullet(ColorRGBA color, String name) {
 
         //Blue: Bala Fraca - Dano 25
         //Green: Bala Média - Dano 50
@@ -352,30 +394,33 @@ public class Main extends SimpleApplication implements AnimEventListener {
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         mat.setColor("Color", color);
         geom.setMaterial(mat);
+        geom.setName(name);
         return geom;
     }
 
-    public Special createSpecial(long time, ColorRGBA color) {     
-        if(color == ColorRGBA.Green)
+    public Special createSpecial(long time, ColorRGBA color) {
+        if (color == ColorRGBA.Green) {
             delayMediumSpecial = time;
-        else
+        } else {
             delayStrongSpecial = time;
+        }
 
         Special s = new Special();
-        
+
         Sphere sphere = new Sphere(30, 30, 0.5f);
         Geometry geom = new Geometry("MediumSpecial", sphere);
         geom.setLocalTranslation(((rand.nextFloat() * 70) - 40), -3, (rand.nextInt(14) + 7));
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         mat.setColor("Color", color);
         geom.setMaterial(mat);
-        
+
         s.setGeom(geom);
-        if(color == ColorRGBA.Green)
+        if (color == ColorRGBA.Green) {
             s.setColorName("Green");
-        else
+        } else {
             s.setColorName("Yellow");
-        
+        }
+
         return s;
     }
 
@@ -418,14 +463,12 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
         enemyBulletListOut.clear();
     }
-    
-    public void eliminateSpecials()
-    {
-        for(Special s: specialsOut)
-        {
+
+    public void eliminateSpecials() {
+        for (Special s : specialsOut) {
             specials.remove(s);
         }
-        
+
         specialsOut.clear();
     }
 
@@ -448,6 +491,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
         inputManager.addMapping("ChangeBlue", new KeyTrigger(KeyInput.KEY_C));
         inputManager.addMapping("ChangeGreen", new KeyTrigger(KeyInput.KEY_V));
         inputManager.addMapping("ChangeYellow", new KeyTrigger(KeyInput.KEY_B));
+        inputManager.addMapping("Pause", new KeyTrigger(KeyInput.KEY_P));
         inputManager.addListener(actionListener, "Shoot");
         inputManager.addListener(analogListener, "Front");
         inputManager.addListener(analogListener, "Back");
@@ -457,6 +501,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
         inputManager.addListener(actionListener, "ChangeBlue");
         inputManager.addListener(actionListener, "ChangeGreen");
         inputManager.addListener(actionListener, "ChangeYellow");
+        inputManager.addListener(actionListener, "Pause");
     }
 
     /**
@@ -466,65 +511,76 @@ public class Main extends SimpleApplication implements AnimEventListener {
     private ActionListener actionListener = new ActionListener() {
 
         public void onAction(String name, boolean keyPressed, float tpf) {
-            
-            if((bulletColor == ColorRGBA.Blue) 
-                || (bulletColor == ColorRGBA.Green && greenAmmo > 0)
-                || (bulletColor == ColorRGBA.Yellow && yellowAmmo > 0))
-            {
-                if (name.equals("Shoot") && !keyPressed) {
-                    bulletNode.attachChild(createBullet(bulletColor));
-                    rootNode.attachChild(bulletNode);
-                    System.out.println("ATIRANDO:");
-                    System.out.println("VERDE:" + greenAmmo);
-                    System.out.println("AMARELO:" + yellowAmmo);
 
-                    if(bulletColor == ColorRGBA.Green)
-                        greenAmmo--;
-                    else if(bulletColor == ColorRGBA.Yellow)
-                        yellowAmmo--;
+            if (name.equals("Pause") && !keyPressed) {
+                gamePaused = !gamePaused;
+            }
+
+            if (!gamePaused) {
+                if ((bulletColor == ColorRGBA.Blue)
+                        || (bulletColor == ColorRGBA.Green && greenAmmo > 0)
+                        || (bulletColor == ColorRGBA.Yellow && yellowAmmo > 0)) {
+                    if (name.equals("Shoot") && !keyPressed) {
+
+                        if (bulletColor == ColorRGBA.Blue) {
+                            bulletNode.attachChild(createBullet(bulletColor, "BlueBullet"));
+                        } else if (bulletColor == ColorRGBA.Green) {
+                            bulletNode.attachChild(createBullet(bulletColor, "GreenBullet"));
+                            greenAmmo--;
+                        } else if (bulletColor == ColorRGBA.Yellow) {
+                            bulletNode.attachChild(createBullet(bulletColor, "YellowBullet"));
+                            yellowAmmo--;
+                        }
+
+                        rootNode.attachChild(bulletNode);
+                    }
+                    //Printar na tela a munição de cada bala que possui
                 }
-                //Printar na tela a munição de cada bala que possui
+                if (name.equals("Reiniciar") && !keyPressed) {
+                    fimJogo = false;
+                    score = 0;
+                    life = 100;
+                }
+
+                if (name.equals("ChangeBlue") && !keyPressed) {
+                    bulletColor = ColorRGBA.Blue;
+                }
+
+                if (name.equals("ChangeGreen") && !keyPressed) {
+                    bulletColor = ColorRGBA.Green;
+                }
+
+                if (name.equals("ChangeYellow") && !keyPressed) {
+                    bulletColor = ColorRGBA.Yellow;
+                }
             }
-            if(name.equals("Reiniciar") && !keyPressed)
-            {
-                //fimJogo = false;
-                score = 0;
-                
-                
-            }
-            
-            if (name.equals("ChangeBlue") && !keyPressed)
-                bulletColor = ColorRGBA.Blue;
-            
-            if (name.equals("ChangeGreen") && !keyPressed)
-                bulletColor = ColorRGBA.Green;
-            
-            if (name.equals("ChangeYellow") && !keyPressed)
-                bulletColor = ColorRGBA.Yellow;
         }
     };
 
     private AnalogListener analogListener = new AnalogListener() {
 
         public void onAnalog(String name, float value, float tpf) {
-        
-            if(!fimJogo){
+            
+            if(!gamePaused)
+            {
+                if (!fimJogo) {
 
-                        if (name.equals("Front")) {
-                            tank.move(0, 0, 0.02f);
-                        }
+                    if (name.equals("Front")) {
+                        tank.move(0, 0, 0.02f);
+                    }
 
-                        if (name.equals("Back")) {
-                            tank.move(0, 0, -0.02f);
-                        }
+                    if (name.equals("Back")) {
+                        tank.move(0, 0, -0.02f);
+                    }
 
-                        if (name.equals("Right")) {
-                            tank.move(-0.02f, 0, 0);
-                        }
+                    if (name.equals("Right")) {
+                        tank.move(-0.02f, 0, 0);
+                    }
 
-                        if (name.equals("Left")) {
-                            tank.move(0.02f, 0, 0);
-                        }
+                    if (name.equals("Left")) {
+                        tank.move(0.02f, 0, 0);
+                    }
+                }
             }
         }
     };
