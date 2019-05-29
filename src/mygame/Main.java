@@ -27,6 +27,7 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.control.CameraControl.ControlDirection;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Sphere;
+import com.jme3.texture.Texture;
 import static java.awt.SystemColor.text;
 import java.util.ArrayList;
 import java.util.Random;
@@ -96,6 +97,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
         rootNode.addLight(sun);
 
         initKeys();
+        showInfoOnScreen();
 
         tank = createTank("MyTank");
         tank.setLocalTranslation(0, -3, 0);
@@ -123,40 +125,8 @@ public class Main extends SimpleApplication implements AnimEventListener {
         //TODO: add update code
         //tank.move(0,0,tpf);
         //camNode.lookAt(posinit, Vector3f.UNIT_Z);
-        if(!gamePaused)
-        {
+        if (!gamePaused) {
             if (!fimJogo) {
-                guiNode.detachAllChildren();
-
-                scoreText = new BitmapText(guiFont, false);
-                scoreText.setSize(guiFont.getCharSet().getRenderedSize());
-                scoreText.setLocalTranslation(10, scoreText.getLineHeight() * 22.5f, 0);
-                scoreText.setText("Score: " + score);
-                guiNode.attachChild(scoreText);
-
-                lifeText = new BitmapText(guiFont, false);
-                lifeText.setSize(guiFont.getCharSet().getRenderedSize());
-                lifeText.setLocalTranslation(10, lifeText.getLineHeight() * 21f, 0);
-                lifeText.setText("Life: " + life + "%");
-                guiNode.attachChild(lifeText);
-
-                blueAmmoText = new BitmapText(guiFont, false);
-                blueAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
-                blueAmmoText.setLocalTranslation(450, blueAmmoText.getLineHeight() * 22.5f, 0);
-                blueAmmoText.setText("Municao Azul: INFINITA");
-                guiNode.attachChild(blueAmmoText);
-
-                greenAmmoText = new BitmapText(guiFont, false);
-                greenAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
-                greenAmmoText.setLocalTranslation(450, greenAmmoText.getLineHeight() * 21f, 0);
-                greenAmmoText.setText("Municao Verde: " + greenAmmo);
-                guiNode.attachChild(greenAmmoText);
-
-                yellowAmmoText = new BitmapText(guiFont, false);
-                yellowAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
-                yellowAmmoText.setLocalTranslation(450, greenAmmoText.getLineHeight() * 19.5f, 0);
-                yellowAmmoText.setText("Municao Amarela: " + yellowAmmo);
-                guiNode.attachChild(yellowAmmoText);
 
                 long time = System.currentTimeMillis();
                 for (Spatial a : bulletNode.getChildren()) {
@@ -193,14 +163,14 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
                 eliminateEnemyBullets();
 
-                if (time > delayEnemy + 4000) {
+                if (time > delayEnemy + ((rand.nextInt(5) + 2) * 1000)) {
                     boolean hasCollision = true;
 
                     Enemy enemy = createEnemy(time);
                     do {
                         hasCollision = hasCollision(enemy);
                         if (hasCollision) {
-                            enemy.getSpatial().setLocalTranslation(((rand.nextFloat() * 70) - 40), -3, 30);
+                            enemy.getSpatial().setLocalTranslation(rand.nextInt(52) - 26, -3, 30);
                         }
 
                     } while (hasCollision);
@@ -226,7 +196,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
                     specials.add(mediumSpecial);
                 }
 
-                if (time > delayStrongSpecial + ((rand.nextInt(60) + 30) * 1000)) {
+                if (time > delayStrongSpecial + ((rand.nextInt(60) + 60) * 1000)) {
                     Special strongSpecial = createSpecial(time, ColorRGBA.Yellow);
 
                     rootNode.attachChild(strongSpecial.getGeom());
@@ -249,6 +219,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
                         }
                         rootNode.detachChild(s.getGeom());
                         specialsOut.add(s);
+                        showInfoOnScreen();
                     }
                     if ((greenAmmo == 0) && (yellowAmmo == 0)) {
                         bulletColor = ColorRGBA.Blue;
@@ -265,6 +236,15 @@ public class Main extends SimpleApplication implements AnimEventListener {
                     rootNode.detachChild(a);
 
                 }
+
+                for (EnemyBullet eb : enemyBulletList) {
+                    enemyBulletNode.detachChild(eb.getGeom());
+                    rootNode.detachChild(eb.getGeom());
+                    enemyBulletListOut.add(eb);
+                }
+
+                eliminateEnemyBullets();
+
                 for (Enemy e : enemyList) {
                     rootNode.detachChild(e.getSpatial()); // tirando os enemy   
                 }
@@ -273,18 +253,6 @@ public class Main extends SimpleApplication implements AnimEventListener {
                 }
                 specials.removeAll(specials);
                 enemyList.removeAll(enemyList);
-
-                text = new BitmapText(guiFont, false);
-                text.setSize(guiFont.getCharSet().getRenderedSize());
-                text.setLocalTranslation(230, text.getLineHeight() * 17, 0);
-                text.setText("FIM DE JOGO");
-                guiNode.attachChild(text);
-
-                finalScore = new BitmapText(guiFont, false);
-                finalScore.setSize(guiFont.getCharSet().getRenderedSize());
-                finalScore.setLocalTranslation(200, text.getLineHeight() * 15, 0);
-                finalScore.setText("SCORE " + score);
-                guiNode.attachChild(finalScore);
             }
         }
     }
@@ -299,7 +267,13 @@ public class Main extends SimpleApplication implements AnimEventListener {
          * Load a model. Uses model and texture from jme3-test-data library!
          */
         Spatial tank = assetManager.loadModel("Models/Tank/tank.j3o");
-        tank.scale(0.35f);
+
+        Material boxMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        Texture monkeyTex = assetManager.loadTexture("mygame/mengao.jpg");
+        boxMat.setTexture("ColorMap", monkeyTex);
+        tank.setMaterial(boxMat);
+
+        tank.scale(0.25f);
         tank.setName(name);
 
         return tank;
@@ -310,9 +284,15 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
         Enemy enemy = new Enemy();
         Spatial s = assetManager.loadModel("Models/Tank/tank.j3o");
-        s.scale(0.35f);
+        Material boxMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        Texture monkeyTex = assetManager.loadTexture("mygame/vasco.jpg");
+        boxMat.setTexture("ColorMap", monkeyTex);
+        s.setMaterial(boxMat);
 
-        s.setLocalTranslation(((rand.nextFloat() * 70) - 40), -3, 30);
+        s.scale(0.25f);
+
+        //s.setLocalTranslation(((rand.nextFloat() * 140) - 70), -3, 30);
+        s.setLocalTranslation(rand.nextInt(52) - 26, -3, 30);
         s.rotate(0, FastMath.PI, 0);
         s.setName(Integer.toString(cont));
         cont++;
@@ -355,6 +335,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
                     rootNode.detachChild(e.getSpatial());
                     enemyList.remove(e);
                     score++;
+                    showInfoOnScreen();
                 }
 
                 return true;
@@ -372,8 +353,11 @@ public class Main extends SimpleApplication implements AnimEventListener {
         if (results.size() > 0) {
             life -= 10;
 
+            showInfoOnScreen();
+
             if (life <= 0) {
                 fimJogo = true;
+                showInfoOnScreen();
             }
 
             return true;
@@ -472,6 +456,54 @@ public class Main extends SimpleApplication implements AnimEventListener {
         specialsOut.clear();
     }
 
+    public void showInfoOnScreen() {
+        guiNode.detachAllChildren();
+
+        if (!fimJogo) {
+            scoreText = new BitmapText(guiFont, false);
+            scoreText.setSize(guiFont.getCharSet().getRenderedSize());
+            scoreText.setLocalTranslation(10, scoreText.getLineHeight() * 22.5f, 0);
+            scoreText.setText("Score: " + score);
+            guiNode.attachChild(scoreText);
+
+            lifeText = new BitmapText(guiFont, false);
+            lifeText.setSize(guiFont.getCharSet().getRenderedSize());
+            lifeText.setLocalTranslation(10, lifeText.getLineHeight() * 21f, 0);
+            lifeText.setText("Life: " + life + "%");
+            guiNode.attachChild(lifeText);
+
+            blueAmmoText = new BitmapText(guiFont, false);
+            blueAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
+            blueAmmoText.setLocalTranslation(450, blueAmmoText.getLineHeight() * 22.5f, 0);
+            blueAmmoText.setText("Municao Azul: INFINITA");
+            guiNode.attachChild(blueAmmoText);
+
+            greenAmmoText = new BitmapText(guiFont, false);
+            greenAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
+            greenAmmoText.setLocalTranslation(450, greenAmmoText.getLineHeight() * 21f, 0);
+            greenAmmoText.setText("Municao Verde: " + greenAmmo);
+            guiNode.attachChild(greenAmmoText);
+
+            yellowAmmoText = new BitmapText(guiFont, false);
+            yellowAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
+            yellowAmmoText.setLocalTranslation(450, greenAmmoText.getLineHeight() * 19.5f, 0);
+            yellowAmmoText.setText("Municao Amarela: " + yellowAmmo);
+            guiNode.attachChild(yellowAmmoText);
+        } else {
+            text = new BitmapText(guiFont, false);
+            text.setSize(guiFont.getCharSet().getRenderedSize());
+            text.setLocalTranslation(230, text.getLineHeight() * 17, 0);
+            text.setText("FIM DE JOGO");
+            guiNode.attachChild(text);
+
+            finalScore = new BitmapText(guiFont, false);
+            finalScore.setSize(guiFont.getCharSet().getRenderedSize());
+            finalScore.setLocalTranslation(200, text.getLineHeight() * 15, 0);
+            finalScore.setText("SCORE " + score);
+            guiNode.attachChild(finalScore);
+        }
+    }
+
     @Override
     public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
         //implementar
@@ -527,9 +559,11 @@ public class Main extends SimpleApplication implements AnimEventListener {
                         } else if (bulletColor == ColorRGBA.Green) {
                             bulletNode.attachChild(createBullet(bulletColor, "GreenBullet"));
                             greenAmmo--;
+                            showInfoOnScreen();
                         } else if (bulletColor == ColorRGBA.Yellow) {
                             bulletNode.attachChild(createBullet(bulletColor, "YellowBullet"));
                             yellowAmmo--;
+                            showInfoOnScreen();
                         }
 
                         rootNode.attachChild(bulletNode);
@@ -540,6 +574,10 @@ public class Main extends SimpleApplication implements AnimEventListener {
                     fimJogo = false;
                     score = 0;
                     life = 100;
+                    greenAmmo = 0;
+                    yellowAmmo = 0;
+                    bulletColor = ColorRGBA.Blue;
+                    showInfoOnScreen();
                 }
 
                 if (name.equals("ChangeBlue") && !keyPressed) {
@@ -560,25 +598,24 @@ public class Main extends SimpleApplication implements AnimEventListener {
     private AnalogListener analogListener = new AnalogListener() {
 
         public void onAnalog(String name, float value, float tpf) {
-            
-            if(!gamePaused)
-            {
+
+            if (!gamePaused) {
                 if (!fimJogo) {
 
                     if (name.equals("Front")) {
-                        tank.move(0, 0, 0.02f);
+                        tank.move(0, 0, 0.03f);
                     }
 
                     if (name.equals("Back")) {
-                        tank.move(0, 0, -0.02f);
+                        tank.move(0, 0, -0.03f);
                     }
 
                     if (name.equals("Right")) {
-                        tank.move(-0.02f, 0, 0);
+                        tank.move(-0.03f, 0, 0);
                     }
 
                     if (name.equals("Left")) {
-                        tank.move(0.02f, 0, 0);
+                        tank.move(0.03f, 0, 0);
                     }
                 }
             }
