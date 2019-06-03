@@ -62,6 +62,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
     private Vector3f anterior = new Vector3f();
     private int greenAmmo = 0;
     private int yellowAmmo = 0;
+    private int enemiesOnScreen;
     Random rand = new Random();
     private boolean fimJogo = false;
     private boolean gamePaused = false;
@@ -73,6 +74,8 @@ public class Main extends SimpleApplication implements AnimEventListener {
     private BitmapText blueAmmoText;
     private BitmapText greenAmmoText;
     private BitmapText yellowAmmoText;
+    private BitmapText pauseText;
+    private BitmapText restartText;
 
     public static void main(String[] args) {
         Main app = new Main();
@@ -87,6 +90,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
         bulletNode = new Node("BulletNode");
         enemyBulletNode = new Node("EnemyBulletNode");
         bulletColor = ColorRGBA.Blue;
+        enemiesOnScreen = 0;
 
         /**
          * A white, directional light source
@@ -165,18 +169,24 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
                 if (time > delayEnemy + ((rand.nextInt(5) + 2) * 1000)) {
                     boolean hasCollision = true;
+                    
+                    if (enemiesOnScreen < 6)
+                    {
+                        Enemy enemy = createEnemy(time);
+                        do {
+                            hasCollision = hasCollision(enemy);
+                            if (hasCollision) {
+                                enemy.getSpatial().setLocalTranslation(rand.nextInt(52) - 26, -3, 30);
+                            }
 
-                    Enemy enemy = createEnemy(time);
-                    do {
-                        hasCollision = hasCollision(enemy);
-                        if (hasCollision) {
-                            enemy.getSpatial().setLocalTranslation(rand.nextInt(52) - 26, -3, 30);
-                        }
+                        } while (hasCollision);
 
-                    } while (hasCollision);
-
-                    enemyList.add(enemy);
-                    rootNode.attachChild(enemy.getSpatial());
+                        enemyList.add(enemy);
+                        rootNode.attachChild(enemy.getSpatial());
+                        enemiesOnScreen++;
+                    }
+                    else
+                        System.out.println("Não cria");
                 }
 
                 for (Enemy e : enemyList) {
@@ -335,6 +345,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
                     rootNode.detachChild(e.getSpatial());
                     enemyList.remove(e);
                     score++;
+                    enemiesOnScreen--;
                     showInfoOnScreen();
                 }
 
@@ -458,49 +469,66 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
     public void showInfoOnScreen() {
         guiNode.detachAllChildren();
+        
+        if(!gamePaused)
+        {
+            if (!fimJogo) {
+                scoreText = new BitmapText(guiFont, false);
+                scoreText.setSize(guiFont.getCharSet().getRenderedSize());
+                scoreText.setLocalTranslation(10, scoreText.getLineHeight() * 22.5f, 0);
+                scoreText.setText("Score: " + score);
+                guiNode.attachChild(scoreText);
 
-        if (!fimJogo) {
-            scoreText = new BitmapText(guiFont, false);
-            scoreText.setSize(guiFont.getCharSet().getRenderedSize());
-            scoreText.setLocalTranslation(10, scoreText.getLineHeight() * 22.5f, 0);
-            scoreText.setText("Score: " + score);
-            guiNode.attachChild(scoreText);
+                lifeText = new BitmapText(guiFont, false);
+                lifeText.setSize(guiFont.getCharSet().getRenderedSize());
+                lifeText.setLocalTranslation(10, lifeText.getLineHeight() * 21f, 0);
+                lifeText.setText("Life: " + life + "%");
+                guiNode.attachChild(lifeText);
 
-            lifeText = new BitmapText(guiFont, false);
-            lifeText.setSize(guiFont.getCharSet().getRenderedSize());
-            lifeText.setLocalTranslation(10, lifeText.getLineHeight() * 21f, 0);
-            lifeText.setText("Life: " + life + "%");
-            guiNode.attachChild(lifeText);
+                blueAmmoText = new BitmapText(guiFont, false);
+                blueAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
+                blueAmmoText.setLocalTranslation(440, blueAmmoText.getLineHeight() * 22.5f, 0);
+                blueAmmoText.setText("Municao Azul(C): INFINITA");
+                guiNode.attachChild(blueAmmoText);
 
-            blueAmmoText = new BitmapText(guiFont, false);
-            blueAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
-            blueAmmoText.setLocalTranslation(450, blueAmmoText.getLineHeight() * 22.5f, 0);
-            blueAmmoText.setText("Municao Azul: INFINITA");
-            guiNode.attachChild(blueAmmoText);
+                greenAmmoText = new BitmapText(guiFont, false);
+                greenAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
+                greenAmmoText.setLocalTranslation(440, greenAmmoText.getLineHeight() * 21f, 0);
+                greenAmmoText.setText("Municao Verde(V): " + greenAmmo);
+                guiNode.attachChild(greenAmmoText);
 
-            greenAmmoText = new BitmapText(guiFont, false);
-            greenAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
-            greenAmmoText.setLocalTranslation(450, greenAmmoText.getLineHeight() * 21f, 0);
-            greenAmmoText.setText("Municao Verde: " + greenAmmo);
-            guiNode.attachChild(greenAmmoText);
+                yellowAmmoText = new BitmapText(guiFont, false);
+                yellowAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
+                yellowAmmoText.setLocalTranslation(440, greenAmmoText.getLineHeight() * 19.5f, 0);
+                yellowAmmoText.setText("Municao Amarela(B): " + yellowAmmo);
+                guiNode.attachChild(yellowAmmoText);
+            } else {
+                text = new BitmapText(guiFont, false);
+                text.setSize(guiFont.getCharSet().getRenderedSize());
+                text.setLocalTranslation(230, text.getLineHeight() * 17, 0);
+                text.setText("FIM DE JOGO");
+                guiNode.attachChild(text);
 
-            yellowAmmoText = new BitmapText(guiFont, false);
-            yellowAmmoText.setSize(guiFont.getCharSet().getRenderedSize());
-            yellowAmmoText.setLocalTranslation(450, greenAmmoText.getLineHeight() * 19.5f, 0);
-            yellowAmmoText.setText("Municao Amarela: " + yellowAmmo);
-            guiNode.attachChild(yellowAmmoText);
-        } else {
-            text = new BitmapText(guiFont, false);
-            text.setSize(guiFont.getCharSet().getRenderedSize());
-            text.setLocalTranslation(230, text.getLineHeight() * 17, 0);
-            text.setText("FIM DE JOGO");
-            guiNode.attachChild(text);
-
-            finalScore = new BitmapText(guiFont, false);
-            finalScore.setSize(guiFont.getCharSet().getRenderedSize());
-            finalScore.setLocalTranslation(200, text.getLineHeight() * 15, 0);
-            finalScore.setText("SCORE " + score);
-            guiNode.attachChild(finalScore);
+                finalScore = new BitmapText(guiFont, false);
+                finalScore.setSize(guiFont.getCharSet().getRenderedSize());
+                finalScore.setLocalTranslation(200, text.getLineHeight() * 15, 0);
+                finalScore.setText("SCORE " + score);
+                guiNode.attachChild(finalScore);
+                
+                restartText = new BitmapText(guiFont, false);
+                restartText.setSize(guiFont.getCharSet().getRenderedSize());
+                restartText.setLocalTranslation(200, text.getLineHeight() * 13, 0);
+                restartText.setText("PRESSIONE 'R' PARA REINICIAR ");
+                guiNode.attachChild(restartText);
+            }
+        }
+        else
+        {
+            pauseText = new BitmapText(guiFont, false);
+            pauseText.setSize(guiFont.getCharSet().getRenderedSize());
+            pauseText.setLocalTranslation(290, pauseText.getLineHeight() * 15, 0);
+            pauseText.setText("PAUSE");
+            guiNode.attachChild(pauseText);
         }
     }
 
@@ -546,6 +574,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
             if (name.equals("Pause") && !keyPressed) {
                 gamePaused = !gamePaused;
+                showInfoOnScreen();
             }
 
             if (!gamePaused) {
@@ -577,6 +606,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
                     greenAmmo = 0;
                     yellowAmmo = 0;
                     bulletColor = ColorRGBA.Blue;
+                    enemiesOnScreen = 0;
                     showInfoOnScreen();
                 }
 
@@ -602,19 +632,20 @@ public class Main extends SimpleApplication implements AnimEventListener {
             if (!gamePaused) {
                 if (!fimJogo) {
 
-                    if (name.equals("Front")) {
+                    if (name.equals("Front") && tank.getLocalTranslation().z < 32.8f) {
                         tank.move(0, 0, 0.03f);
+                        System.out.println(tank.getLocalTranslation().z);
                     }
 
-                    if (name.equals("Back")) {
+                    if (name.equals("Back") && tank.getLocalTranslation().z > -5.2f) {
                         tank.move(0, 0, -0.03f);
                     }
 
-                    if (name.equals("Right")) {
+                    if (name.equals("Right") && tank.getLocalTranslation().x > -24.3f) {
                         tank.move(-0.03f, 0, 0);
                     }
 
-                    if (name.equals("Left")) {
+                    if (name.equals("Left") && tank.getLocalTranslation().x < 23.8f) {
                         tank.move(0.03f, 0, 0);
                     }
                 }
