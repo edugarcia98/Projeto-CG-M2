@@ -4,6 +4,8 @@ import com.jme3.animation.AnimChannel;
 import com.jme3.animation.AnimControl;
 import com.jme3.animation.AnimEventListener;
 import com.jme3.app.SimpleApplication;
+import com.jme3.audio.AudioData;
+import com.jme3.audio.AudioNode;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
 import com.jme3.font.BitmapText;
@@ -67,6 +69,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
     private boolean fimJogo = false;
     private boolean gamePaused = false;
     private int score = 0;
+    private int recordScore = 0;
     private BitmapText text;
     private BitmapText finalScore;
     private BitmapText scoreText;
@@ -76,7 +79,10 @@ public class Main extends SimpleApplication implements AnimEventListener {
     private BitmapText yellowAmmoText;
     private BitmapText pauseText;
     private BitmapText restartText;
-
+    private BitmapText recordText;
+    private AudioNode  audio;
+    private AudioNode  bala;
+    
     public static void main(String[] args) {
         Main app = new Main();
         app.setShowSettings(false);
@@ -85,7 +91,6 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
     @Override
     public void simpleInitApp() {
-
         flyCam.setMoveSpeed(75);
         bulletNode = new Node("BulletNode");
         enemyBulletNode = new Node("EnemyBulletNode");
@@ -102,6 +107,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
         initKeys();
         showInfoOnScreen();
+        initaudio();
 
         tank = createTank("MyTank");
         tank.setLocalTranslation(0, -3, 0);
@@ -185,13 +191,11 @@ public class Main extends SimpleApplication implements AnimEventListener {
                         rootNode.attachChild(enemy.getSpatial());
                         enemiesOnScreen++;
                     }
-                    else
-                        System.out.println("Não cria");
                 }
 
                 for (Enemy e : enemyList) {
                     e.getSpatial().lookAt(tank.getLocalTranslation(), upVector);
-                    if (time > e.getDelayEnemyBullet() + ((rand.nextInt(5) + 2) * 1000)) {
+                    if (time > e.getDelayEnemyBullet() + ((rand.nextInt(100) + 2) * 1000)) {
                         EnemyBullet eb = createEnemyBullet(e, time);
                         enemyBulletList.add(eb);
                         enemyBulletNode.attachChild(eb.getGeom());
@@ -216,9 +220,6 @@ public class Main extends SimpleApplication implements AnimEventListener {
                 for (Special s : specials) {
                     s.getGeom().move((rand.nextInt(25) - 10) * tpf, 0, (rand.nextInt(25) - 10) * tpf);
                     if (hasCollisionSpecial(s.getGeom())) {
-                        System.out.println("ANTES DA MUDANÇA DO ESPECIAL");
-                        System.out.println("VERDE:" + greenAmmo);
-                        System.out.println("AMARELO:" + yellowAmmo);
                         if (s.getColorName().equals("Green")) {
                             greenAmmo += 20;
                             bulletColor = ColorRGBA.Green;
@@ -332,7 +333,6 @@ public class Main extends SimpleApplication implements AnimEventListener {
             geo.collideWith(e.getSpatial().getWorldBound(), results);
 
             if (results.size() > 0) {
-                System.out.println(geo.getName());
                 if (geo.getName().equals("BlueBullet")) {
                     e.setLife(e.getLife() - 25);
                 } else if (geo.getName().equals("GreenBullet")) {
@@ -355,6 +355,20 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
         return false;
     }
+    private void initaudio()
+    {
+        audio = new AudioNode(assetManager,"mygame/mengaofunk.wav",AudioData.DataType.Buffer);
+        audio.setLooping(true);
+        audio.setPositional(false);
+        audio.setVolume(0.025f);
+        audio.play();
+        
+        bala = new AudioNode(assetManager,"mygame/porra.wav",AudioData.DataType.Buffer);
+        bala.setLooping(false);
+        bala.setPositional(false);
+        bala.setVolume(0.5f);
+       
+    }
 
     public boolean hasCollisionEnemyBullet(EnemyBullet eb) {
         CollisionResults results = new CollisionResults();
@@ -368,6 +382,8 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
             if (life <= 0) {
                 fimJogo = true;
+                if (score > recordScore)
+                    recordScore = score;
                 showInfoOnScreen();
             }
 
@@ -511,13 +527,19 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
                 finalScore = new BitmapText(guiFont, false);
                 finalScore.setSize(guiFont.getCharSet().getRenderedSize());
-                finalScore.setLocalTranslation(200, text.getLineHeight() * 15, 0);
-                finalScore.setText("SCORE " + score);
+                finalScore.setLocalTranslation(200, finalScore.getLineHeight() * 15, 0);
+                finalScore.setText("SCORE: " + score);
                 guiNode.attachChild(finalScore);
+                
+                recordText = new BitmapText(guiFont, false);
+                recordText.setSize(guiFont.getCharSet().getRenderedSize());
+                recordText.setLocalTranslation(200, recordText.getLineHeight() * 13, 0);
+                recordText.setText("SEU RECORDE ATUAL É DE: " + recordScore);
+                guiNode.attachChild(recordText);
                 
                 restartText = new BitmapText(guiFont, false);
                 restartText.setSize(guiFont.getCharSet().getRenderedSize());
-                restartText.setLocalTranslation(200, text.getLineHeight() * 13, 0);
+                restartText.setLocalTranslation(200, restartText.getLineHeight() * 11, 0);
                 restartText.setText("PRESSIONE 'R' PARA REINICIAR ");
                 guiNode.attachChild(restartText);
             }
@@ -582,7 +604,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
                         || (bulletColor == ColorRGBA.Green && greenAmmo > 0)
                         || (bulletColor == ColorRGBA.Yellow && yellowAmmo > 0)) {
                     if (name.equals("Shoot") && !keyPressed) {
-
+                        //bala.play();
                         if (bulletColor == ColorRGBA.Blue) {
                             bulletNode.attachChild(createBullet(bulletColor, "BlueBullet"));
                         } else if (bulletColor == ColorRGBA.Green) {
@@ -632,9 +654,8 @@ public class Main extends SimpleApplication implements AnimEventListener {
             if (!gamePaused) {
                 if (!fimJogo) {
 
-                    if (name.equals("Front") && tank.getLocalTranslation().z < 32.8f) {
+                    if (name.equals("Front") && tank.getLocalTranslation().z < 20.8f) {
                         tank.move(0, 0, 0.03f);
-                        System.out.println(tank.getLocalTranslation().z);
                     }
 
                     if (name.equals("Back") && tank.getLocalTranslation().z > -5.2f) {
